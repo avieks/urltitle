@@ -62,7 +62,7 @@ namespace eval UrlTitle {
 
   # INTERNAL
   variable last 1              ;# Internal variable, stores time of last eggdrop use, don't change..
-  variable scriptVersion 0.11c
+  variable scriptVersion 0.11b
 
   # PACKAGES
   package require http         ;# You need the http package..
