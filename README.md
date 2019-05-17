@@ -1,7 +1,12 @@
 URLTitle
 =========
 
-A script for Eggdrop IRC bot that detects URLs from public messages on channels and prints out their title
+A script for Eggdrop IRC bot that detects URLs from public messages on channels and prints out their title.<br>
+Modified by avieks.
+
+Version Log:<br>
+0.11b&nbsp;&nbsp;&nbsp;&nbsp;Add the option to ignore pages and remove "Title: " from the output.<br>
+···
 
 Installation
 ------------

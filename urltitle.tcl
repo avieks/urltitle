@@ -1,11 +1,14 @@
 # Script to grab titles from webpages
+# Modified by avieks
 # Updated version by teel @ IRCnet
 #
+# https://github.com/avieks/urltitle
 # https://github.com/teeli/urltitle
 #
 # Detects URL from IRC channels and prints out the title
 #
 # Version Log:
+# 0.11b    Add the option to ignore pages and remove "Title: " from the output
 # 0.11     Updated regex parser to only parse titles inside <head> tags
 #          Added HTTP error status logging
 # 0.10     Fixed XPath parsing error and added regex fallback if XPath fails
@@ -48,6 +51,9 @@ namespace eval UrlTitle {
   variable delay 1             ;# minimum seconds to wait before another eggdrop use
   variable timeout 5000        ;# geturl timeout (1/1000ths of a second)
   variable fetchLimit 5        ;# How many times to process redirects before erroring
+  # Pages to ignore
+  #   Example: {example.com www.example.com}
+  variable ignorePages {}
 
   # BINDS
   bind pubm "-|-" {*://*} UrlTitle::handler
@@ -56,7 +62,7 @@ namespace eval UrlTitle {
 
   # INTERNAL
   variable last 1              ;# Internal variable, stores time of last eggdrop use, don't change..
-  variable scriptVersion 0.11
+  variable scriptVersion 0.11c
 
   # PACKAGES
   package require http         ;# You need the http package..
@@ -101,12 +107,18 @@ namespace eval UrlTitle {
     variable last
     variable ignore
     variable length
+    variable ignorePages
     set unixtime [clock seconds]
     if {[channel get $chan urltitle] && ($unixtime - $delay) > $last && (![matchattr $user $ignore])} {
       foreach word [split $text] {
         if {[string length $word] >= $length && [regexp {^(f|ht)tp(s|)://} $word] && \
             ![regexp {://([^/:]*:([^/]*@|\d+(/|$))|.*/\.)} $word]} {
+          # Need the host info
+          array set uri [::uri::split $word]
           set last $unixtime
+          if {[lsearch $ignorePages $uri(host)] > -1} {
+            break
+          }
           # enable https if supported
           if {$httpsSupport} {
             ::http::register https 443 [list UrlTitle::socket]
@@ -123,7 +135,7 @@ namespace eval UrlTitle {
             break
           }
           if {[string length $urtitle]} {
-            puthelp "PRIVMSG $chan :Title: $urtitle"
+            puthelp "PRIVMSG $chan :$urtitle"
           }
           break
         }
@@ -201,7 +213,11 @@ namespace eval UrlTitle {
           } {
             switch -regexp -- $status {
               "HTTP.*200.*" {
-                if {$tdomSupport} {
+                # Need the host info
+                array set uri [::uri::split $url]
+                if {[string match "*.imdb.com" $uri(host)]} {
+                  set title [parseImdbTitle $data]
+                } elseif {$tdomSupport} {
                   # use XPATH if tdom is supported
                   set title [parseTitleXPath $data]
                 } else {
